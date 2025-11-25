@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}已完成專案（委託人）{% endblock %}
+{% block content %}
+<div class="card">
+    <h2>已完成專案</h2>
+    <a href="/client/dashboard" class="btn">返回控制台</a>
+</div>
+
+{% if completed_projects %}
+    {% for project in completed_projects %}
+    <div class="card">
+        <h3>{{ project.title }}</h3>
+        <p>{{ project.description }}</p>
+        <p><strong>預算:</strong> ${{ project.budget }}</p>
+        {% if project.contractor_name %}
+        <p><strong>接案人:</strong> {{ project.contractor_name }}</p>
+        {% endif %}
+        <p><strong>狀態:</strong> <span class="status status-{{ project.status }}">已完成</span></p>
+        <p><strong>完成時間:</strong> {{ project.updated_at }}</p>
+        <div style="margin-top: 1rem;">
+            <a href="/client/project/{{ project.id }}/deliverable" class="btn">查看結案檔案</a>
+        </div>
+    </div>
+    {% endfor %}
+{% else %}
+    <div class="card">
+        <p>目前沒有已完成的專案</p>
+    </div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}接案人控制台{% endblock %}
+{% block content %}
+<div class="card">
+    <h2>進行中的專案</h2>
+    <a href="/contractor/completed" class="btn">查看已完成專案</a>
+</div>
+
+{% if my_projects %}
+    {% for project in my_projects %}
+    {% if project.status != 'completed' %}
+    <div class="card">
+        <h3>{{ project.title }}</h3>
+        <p>{{ project.description }}</p>
+        <p><strong>預算:</strong> ${{ project.budget }}</p>
+        <p><strong>委託人:</strong> {{ project.client_name }}</p>
+        <p><strong>狀態:</strong> <span class="status status-{{ project.status }}">
+            {% if project.status == 'assigned' %}進行中
+            {% elif project.status == 'rejected' %}已退件
+            {% endif %}
+        </span></p>
+        <p><strong>指派時間:</strong> {{ project.updated_at }}</p>
+        <a href="/contractor/project/{{ project.id }}" class="btn">查看詳情</a>
+
+        {% if (project.status == 'assigned' or project.status == 'rejected') %}
+        <a href="/contractor/project/{{ project.id }}/upload" class="btn">
+            {% if project.has_deliverable %}更新結案檔案{% else %}上傳結案檔案{% endif %}
+        </a>
+        {% endif %}
+    </div>
+    {% endif %}
+    {% endfor %}
+{% else %}
+    <div class="card">
+        <p>目前沒有進行中的專案</p>
+    </div>
+{% endif %}
+
+<div class="card">
+    <h2>可用專案</h2>
+</div>
+{% for project in available_projects %}
+<div class="card">
+    <h3>{{ project.title }}</h3>
+    <p>{{ project.description }}</p>
+    <p><strong>預算:</strong> ${{ project.budget }}</p>
+    <p><strong>委託人:</strong> {{ project.client_name }}</p>
+    <p><strong>更新時間:</strong> {{ project.updated_at }}</p>
+    <a href="/contractor/project/{{ project.id }}" class="btn">查看詳情</a>
+</div>
+{% endfor %}
+{% endblock %}

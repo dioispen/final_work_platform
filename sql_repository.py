@@ -1,0 +1,12 @@
+# 將原本大檔拆分到 models/，並保留相同名稱的匯出以維持相容
+from models.project_repository import ProjectRepository
+from models.bid_repository import BidRepository
+from models.user_repository import UserRepository
+from models.deliverable_repository import DeliverableRepository
+
+__all__ = [
+    "ProjectRepository",
+    "BidRepository",
+    "UserRepository",
+    "DeliverableRepository",
+]

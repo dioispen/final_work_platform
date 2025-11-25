@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}投標列表{% endblock %}
+{% block content %}
+<div class="card">
+    <h2>{{ project.title }} - 投標列表</h2>
+    <p>{{ project.description }}</p>
+    <p><strong>預算:</strong> ${{ project.budget }}</p>
+</div>
+
+{% if bids %}
+    {% for bid in bids %}
+    <div class="card">
+        <h3>{{ bid.contractor_name }}</h3>
+        <p><strong>報價:</strong> ${{ bid.price }}</p>
+        <p><strong>說明:</strong> {{ bid.message }}</p>
+        <p><strong>投標時間:</strong> {{ bid.updated_at }}</p>
+        <p><strong>狀態:</strong> 
+            {% if bid.status == 'accepted' %}已接受
+            {% elif bid.status == 'rejected' %}已拒絕
+            {% else %}待處理
+            {% endif %}
+        </p>
+        {% if project.status == 'open' and bid.status == 'pending' %}
+        <form method="POST" action="/client/bid/{{ bid.id }}/accept" style="display: inline;">
+            <button type="submit" class="btn btn-success">接受</button>
+        </form>
+        {% endif %}
+    </div>
+    {% endfor %}
+{% else %}
+    <div class="card">
+        <p>目前還沒有投標</p>
+    </div>
+{% endif %}
+
+<a href="/client/dashboard" class="btn">返回</a>
+{% endblock %}

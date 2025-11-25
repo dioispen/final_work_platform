@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}登入 - 工作委託平台{% endblock %}
+{% block content %}
+<div class="card" style="max-width: 400px; margin: 0 auto;">
+    <h2>登入</h2>
+    {% if error %}
+    <div class="error">{{ error }}</div>
+    {% endif %}
+    <form method="POST">
+        <div class="form-group">
+            <label>用戶名</label>
+            <input type="text" name="username" required>
+            <label>密碼</label>
+            <input type="password" name="password" required>
+        </div>
+        <button type="submit" class="btn">登入</button>
+    </form>
+</div>
+{% endblock %}

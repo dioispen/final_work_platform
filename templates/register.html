@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}註冊 - 工作委託平台{% endblock %}
+{% block content %}
+<div class="card" style="max-width: 400px; margin: 0 auto;">
+    <h2>註冊</h2>
+    {% if error %}
+    <div class="error">{{ error }}</div>
+    {% endif %}
+    <form method="POST">
+        <div class="form-group">
+            <label>用戶名</label>
+            <input type="text" name="username" required>
+            <label>密碼</label>
+            <input type="password" name="password" required>
+        </div>
+        <div class="form-group">
+            <label>角色</label>
+            <select name="role" required>
+                <option value="client">委託人</option>
+                <option value="contractor">接案人</option>
+            </select>
+        </div>
+        <button type="submit" class="btn">註冊</button>
+    </form>
+</div>
+{% endblock %}

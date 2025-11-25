@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}上傳結案檔案{% endblock %}
+{% block content %}
+<div class="card">
+    <h2>{{ project.title }} - 上傳結案檔案</h2>
+    <p><strong>上次上傳時間:</strong> 
+            {% if deliverable.uploaded_at %}
+                {{ deliverable.uploaded_at }}
+            {% else %}
+                尚未上傳
+            {% endif %}
+        </p>
+    <form method="POST" enctype="multipart/form-data">
+        <div class="form-group">
+            <label>說明</label>
+            <textarea name="message" required></textarea>
+        </div>
+        <div class="form-group">
+            <label>檔案</label>
+            <input type="file" name="file" required>
+        </div>
+        <button type="submit" class="btn">上傳</button>
+        <a href="/contractor/dashboard" class="btn" style="background: #95a5a6;">取消</a>
+    </form>
+</div>
+{% endblock %}
