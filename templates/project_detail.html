@@ -12,6 +12,9 @@
         {% endif %}
         <p><strong>更新時間:</strong> {{ project.updated_at }}</p>
     </span></p>
+    {% if project.deadline and project.status == 'open' %}
+    <p><strong>截止時間 (UTC):</strong> {{ project.deadline }}</p>
+    {% endif %}
 </div>
 
 {% if my_bid %}
@@ -19,6 +22,13 @@
     <h3>我的投標</h3>
     <p><strong>報價:</strong> ${{ my_bid.price }}</p>
     <p><strong>說明:</strong> {{ my_bid.message }}</p>
+    <p><strong>檔案:</strong>
+        {% if my_bid.file_path %}
+            <a href="/{{ my_bid.file_path }}" target="_blank">下載 {{ my_bid.file_name }}</a>
+        {% else %}
+            尚無
+        {% endif %}
+    </p>
     <p><strong>狀態:</strong> <span class="status status-{{ my_bid.status }}">
         {% if my_bid.status == 'accepted' %}已接受
         {% elif my_bid.status == 'rejected' %}已拒絕
@@ -28,8 +38,8 @@
 </div>
 {% elif project.status == 'open' %}
 <div class="card">
-    <h3>提交投標</h3>
-    <form method="POST" action="/contractor/project/{{ project.id }}/bid">
+    <h3>提交投標（需上傳 PDF 提案）</h3>
+    <form method="POST" action="/contractor/project/{{ project.id }}/bid" enctype="multipart/form-data">
         <div class="form-group">
             <label>報價</label>
             <input type="number" name="price" required>
@@ -37,6 +47,10 @@
         <div class="form-group">
             <label>說明</label>
             <textarea name="message" required></textarea>
+        </div>
+        <div class="form-group">
+            <label>提案計畫書 (PDF)</label>
+            <input type="file" name="file" accept="application/pdf" required>
         </div>
         <button type="submit" class="btn">提交投標</button>
     </form>

@@ -39,10 +39,10 @@ async def new_project_page(request: Request, user: dict = Depends(require_auth))
     return templates.TemplateResponse("project_form.html", {"request": request, "user": user, "project": None})
 
 @router.post("/project/new")
-async def create_project(request: Request, title: str = Form(...), description: str = Form(...), budget: int = Form(...), user: dict = Depends(require_auth)):
+async def create_project(request: Request, title: str = Form(...), description: str = Form(...), budget: int = Form(...), deadline: str = Form(...), user: dict = Depends(require_auth)):
     if user['role'] != 'client':
         raise HTTPException(status_code=403)
-    ProjectRepository.create(title, description, budget, user['user_id'])
+    ProjectRepository.create(title, description, budget, user['user_id'], deadline)
     return RedirectResponse("/client/dashboard", status_code=303)
 
 @router.get("/project/{project_id}/edit", response_class=HTMLResponse)
@@ -55,10 +55,10 @@ async def edit_project_page(request: Request, project_id: int, user: dict = Depe
     return templates.TemplateResponse("project_form.html", {"request": request, "user": user, "project": project})
 
 @router.post("/project/{project_id}/edit")
-async def update_project(request: Request, project_id: int, title: str = Form(...), description: str = Form(...), budget: int = Form(...), user: dict = Depends(require_auth)):
+async def update_project(request: Request, project_id: int, title: str = Form(...), description: str = Form(...), budget: int = Form(...), deadline: str = Form(...), user: dict = Depends(require_auth)):
     if user['role'] != 'client':
         raise HTTPException(status_code=403)
-    ProjectRepository.update(project_id, title, description, budget, user['user_id'])
+    ProjectRepository.update(project_id, title, description, budget, user['user_id'], deadline)
     return RedirectResponse("/client/dashboard", status_code=303)
 
 @router.get("/project/{project_id}/bids", response_class=HTMLResponse)
@@ -67,6 +67,10 @@ async def view_bids(request: Request, project_id: int, user: dict = Depends(requ
         raise HTTPException(status_code=403)
     project = ProjectRepository.get_by_id(project_id)
     bids = BidRepository.get_by_project_id(project_id)
+    '''now = datetime.now(timezone.utc)
+    deadline = project.get('deadline')
+    project_deadline = deadline.replace(tzinfo=timezone.utc)
+    can_accept = now > project_deadline'''
     if not project or project['client_id'] != user['user_id']:
         raise HTTPException(status_code=404)
     return templates.TemplateResponse("bids_list.html", {"request": request, "user": user, "project": project, "bids": bids})
@@ -90,8 +94,8 @@ async def view_deliverable(request: Request, project_id: int, user: dict = Depen
     project = ProjectRepository.get_by_id(project_id)
     if not project or project['client_id'] != user['user_id']:
         raise HTTPException(status_code=404)
-    deliverable = DeliverableRepository.get_by_project_id(project_id)
-    return templates.TemplateResponse("deliverable_review.html", {"request": request, "user": user, "project": project, "deliverable": deliverable})
+    deliverables = DeliverableRepository.get_all_by_project_id(project_id)
+    return templates.TemplateResponse("deliverable_review.html", {"request": request, "user": user, "project": project, "deliverables": deliverables})
 
 @router.post("/project/{project_id}/complete")
 async def complete_project(request: Request, project_id: int, user: dict = Depends(require_auth)):

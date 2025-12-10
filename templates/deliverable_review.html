@@ -4,11 +4,16 @@
 <div class="card">
     <h2>{{ project.title }} - 結案檔案</h2>
     
-    {% if deliverable %}
-        <p><strong>檔案名稱:</strong> {{ deliverable.file_name }}</p>
-        <p><strong>說明:</strong> {{ deliverable.message }}</p>
-        <p><strong>上傳時間:</strong> {{ deliverable.uploaded_at }}</p>
-        <p><a href="/{{ deliverable.file_path }}" target="_blank" class="btn">下載檔案</a></p>
+    {% if deliverables %}
+        <h3>歷史版本</h3>
+        {% for d in deliverables %}
+            <div style="margin-bottom:1rem;padding:0.5rem;border:1px solid #ddd;">
+                <p><strong>檔案名稱:</strong> {{ d.file_name }}</p>
+                <p><strong>說明:</strong> {{ d.message }}</p>
+                <p><strong>上傳時間:</strong> {{ d.uploaded_at }}</p>
+                <p><a href="/{{ d.file_path }}" target="_blank" class="btn">下載檔案</a></p>
+            </div>
+        {% endfor %}
 
         {% if (project.status == 'assigned' or project.status == 'rejected') %}
         <div style="margin-top: 2rem;">

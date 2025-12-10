@@ -4,24 +4,32 @@ from fastapi.templating import Jinja2Templates
 from sql_repository import ProjectRepository, BidRepository, DeliverableRepository
 from .dependencies import require_auth
 import os
+from datetime import datetime, timezone
+import time
 
 router = APIRouter(prefix="/contractor", tags=["contractor"])
 templates = Jinja2Templates(directory="templates")
 UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
+def _sanitize_filename(name: str) -> str:
+    name = os.path.basename(name)
+    # replace spaces and disallowed chars simply
+    return "".join(c if c.isalnum() or c in (' ', '.', '_', '-') else '_' for c in name).replace(' ', '_')
+
 @router.get("/dashboard", response_class=HTMLResponse)
 async def contractor_dashboard(request: Request, user: dict = Depends(require_auth)):
     if user['role'] != 'contractor':
         raise HTTPException(status_code=403)
     my_projects = ProjectRepository.get_contractor_projects(user['user_id'])
-    # 為每個專案檢查是否已有結案檔案，並加入 flag
+    # 為每個專案檢查是否已有結案檔案，並加入 flag 與版本資訊
     for p in my_projects:
         try:
-            deliverable = DeliverableRepository.get_by_project_id(p.get("id"))
+            deliverables = DeliverableRepository.get_all_by_project_id(p.get("id"))
         except Exception:
-            deliverable = None
-        p["has_deliverable"] = bool(deliverable)
+            deliverables = []
+        p["has_deliverable"] = len(deliverables) > 0
+        p["deliverable_versions"] = deliverables
     available_projects = ProjectRepository.get_available_projects()
     return templates.TemplateResponse("contractor_dashboard.html", {
         "request": request,
@@ -41,10 +49,34 @@ async def view_project(request: Request, project_id: int, user: dict = Depends(r
     return templates.TemplateResponse("project_detail.html", {"request": request, "user": user, "project": project, "my_bid": my_bid})
 
 @router.post("/project/{project_id}/bid")
-async def submit_bid(request: Request, project_id: int, price: int = Form(...), message: str = Form(...), user: dict = Depends(require_auth)):
+async def submit_bid(request: Request, project_id: int, price: int = Form(...), message: str = Form(...), file: UploadFile = File(...), user: dict = Depends(require_auth)):
     if user['role'] != 'contractor':
         raise HTTPException(status_code=403)
-    BidRepository.create(project_id, user['user_id'], price, message)
+
+    # 檢查 deadline
+    project = ProjectRepository.get_by_id(project_id)
+    if not project:
+        raise HTTPException(status_code=404)
+    deadline = project.get('deadline')
+    deadline = deadline.replace(tzinfo=timezone.utc)
+    now = datetime.now(timezone.utc)
+    if deadline and isinstance(deadline, datetime) and now > deadline:
+        raise HTTPException(status_code=400, detail="投標截止日期已過，無法提交提案")
+
+    # 檔案格式檢查（僅限 pdf）
+    filename_orig = file.filename or ""
+    if not filename_orig.lower().endswith('.pdf'):
+        raise HTTPException(status_code=400, detail="僅接受 PDF 格式的提案檔案")
+
+    safe_name = _sanitize_filename(filename_orig)
+    unique_name = f"proposal_{project_id}_{user['user_id']}_{int(time.time())}_{safe_name}"
+    file_path = os.path.join(UPLOAD_DIR, unique_name)
+    with open(file_path, "wb") as buffer:
+        content = await file.read()
+        buffer.write(content)
+
+    # 儲存投標（含檔案路徑）
+    BidRepository.create(project_id, user['user_id'], price, message, filename_orig, file_path)
     return RedirectResponse(f"/contractor/project/{project_id}", status_code=303)
 
 @router.get("/project/{project_id}/upload", response_class=HTMLResponse)
@@ -54,8 +86,8 @@ async def upload_page(request: Request, project_id: int, user: dict = Depends(re
     project = ProjectRepository.get_project_by_contractor(project_id, user['user_id'])
     if not project:
         raise HTTPException(status_code=404)
-    deliverable = DeliverableRepository.get_by_project_id(project_id)
-    return templates.TemplateResponse("upload_deliverable.html", {"request": request, "user": user, "project": project, "deliverable": deliverable})
+    deliverables = DeliverableRepository.get_all_by_project_id(project_id)
+    return templates.TemplateResponse("upload_deliverable.html", {"request": request, "user": user, "project": project, "deliverables": deliverables})
 
 @router.post("/project/{project_id}/upload")
 async def upload_deliverable(request: Request, project_id: int, message: str = Form(...), file: UploadFile = File(...), user: dict = Depends(require_auth)):
@@ -64,14 +96,16 @@ async def upload_deliverable(request: Request, project_id: int, message: str = F
     project = ProjectRepository.get_project_by_contractor(project_id, user['user_id'])
     if not project:
         raise HTTPException(status_code=404)
-    if DeliverableRepository.get_by_project_id(project_id):
-        DeliverableRepository.delete_by_project_id(project_id)
-    filename = f"{project_id}_{file.filename}"
-    file_path = os.path.join(UPLOAD_DIR, filename)
+
+    filename_orig = file.filename or ""
+    safe_name = _sanitize_filename(filename_orig)
+    unique_name = f"deliverable_{project_id}_{user['user_id']}_{int(time.time())}_{safe_name}"
+    file_path = os.path.join(UPLOAD_DIR, unique_name)
     with open(file_path, "wb") as buffer:
         content = await file.read()
         buffer.write(content)
-    DeliverableRepository.create(project_id, file.filename, file_path, message)
+    # 不刪除舊版本，建立新版本紀錄
+    DeliverableRepository.create(project_id, filename_orig, file_path, message)
     return RedirectResponse("/contractor/dashboard", status_code=303)
 
 @router.get("/completed", response_class=HTMLResponse)

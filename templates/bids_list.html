@@ -5,6 +5,9 @@
     <h2>{{ project.title }} - 投標列表</h2>
     <p>{{ project.description }}</p>
     <p><strong>預算:</strong> ${{ project.budget }}</p>
+    {% if project.deadline %}
+    <p><strong>截止時間 (UTC):</strong> {{ project.deadline }}</p>
+    {% endif %}
 </div>
 
 {% if bids %}
@@ -13,7 +16,14 @@
         <h3>{{ bid.contractor_name }}</h3>
         <p><strong>報價:</strong> ${{ bid.price }}</p>
         <p><strong>說明:</strong> {{ bid.message }}</p>
-        <p><strong>投標時間:</strong> {{ bid.updated_at }}</p>
+        <p><strong>投標時間:</strong> {{ bid.updated_at or bid.uploaded_at }}</p>
+        <p><strong>提案檔案:</strong>
+            {% if bid.file_path %}
+                <a href="/{{ bid.file_path }}" target="_blank">下載 {{ bid.file_name }}</a>
+            {% else %}
+                無
+            {% endif %}
+        </p>
         <p><strong>狀態:</strong> 
             {% if bid.status == 'accepted' %}已接受
             {% elif bid.status == 'rejected' %}已拒絕
